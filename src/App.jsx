@@ -13,7 +13,7 @@ const sampleCards = [
 ];
 function getCardName(c) { return c.fullName || c.name || c.Name || 'Carta sem nome'; }
 function normalizeCard(c, i) {
-  const setName = c.setName || c.set_name || c.set?.name || c.setNameEnglish || 'Coleção';
+  const setName = c.setName || c.set_name || c.set?.name || c.setNameEnglish || c.set?.name || c.setCode || 'Coleção';
   const images = c.images || {};
   return {
     id: String(c.id ?? c.cardId ?? c.card_id ?? `${setName}-${c.number ?? i}`),
@@ -24,7 +24,7 @@ function normalizeCard(c, i) {
     cost: c.cost ?? c.inkCost ?? c.ink_cost ?? '—',
     type: Array.isArray(c.type) ? c.type.join(', ') : (c.type || c.cardType || 'Carta'),
     rarity: c.rarity || c.Rarity || '—',
-    image: c.images?.full || c.images?.thumbnail || c.image || c.imageUrl || c.image_url || images.full || '',
+    image: c.images?.full || c.images?.thumbnail || c.image || c.imageUrl || c.image_url || images.full || images.thumbnail || c.image_uri || c.imageUri || '',
     collectorNumber: Number(c.number ?? c.collectorNumber ?? c.collector_number ?? i + 1),
     raw: c
   };
@@ -53,7 +53,7 @@ export default function App() {
       const response = await fetch(API_URL, { cache: 'no-store' });
       if (!response.ok) throw new Error('A fonte de cartas respondeu com erro.');
       const json = await response.json();
-      const list = Array.isArray(json) ? json : (json.cards || json.data || json.results || []);
+      const list = Array.isArray(json) ? json : (json.cards || json.data?.cards || json.data || json.results || []);
       if (!list.length) throw new Error('A fonte não retornou cartas.');
       setCards(list.map(normalizeCard).sort((a,b) => a.setName.localeCompare(b.setName) || a.collectorNumber - b.collectorNumber));
       setSource('live');
@@ -136,7 +136,7 @@ export default function App() {
         {loading ? <div className="loading-state"><div className="spinner"></div><strong>Invocando o catálogo...</strong><span>Carregando as cartas da sua coleção</span></div> :
           visible.length ? <div className="cards-grid">{visible.map((card,i)=><article className="card-item" key={card.id}>
             <div className={'card-art ink-'+String(card.ink).toLowerCase()}>
-              {card.image ? <img src={card.image} alt={card.fullName} loading={i<12?'eager':'lazy'} onError={e=>{e.currentTarget.style.display='none';}}/> : <div className="card-placeholder"><Sparkles size={32}/><span>{card.name}</span><small>{card.ink}</small></div>}
+              {card.image ? <img src={card.image} alt={card.fullName} loading={i<12?'eager':'lazy'} onError={e=>{e.currentTarget.style.display='none'; const p=e.currentTarget.parentElement; if(p && !p.querySelector('.card-placeholder')) { const d=document.createElement('div'); d.className='card-placeholder'; d.innerHTML='<span>'+String(card.name).replace(/[&<>"']/g,'')+'</span><small>Imagem indisponível</small>'; p.prepend(d); }}}/> : <div className="card-placeholder"><Sparkles size={32}/><span>{card.name}</span><small>{card.ink}</small></div>}
               <span className="rarity-tag">{card.rarity}</span>
               <button className={wishlist[card.id]?'wish-btn wished':'wish-btn'} onClick={()=>toggleWish(card)} aria-label={wishlist[card.id]?'Remover dos desejos':'Adicionar aos desejos'}><Heart size={17} fill={wishlist[card.id]?'currentColor':'none'}/></button>
               {owned[card.id]>0 && <span className="owned-badge">×{owned[card.id]}</span>}
