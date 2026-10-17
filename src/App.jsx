@@ -63,7 +63,14 @@ export default function App() {
       const response = await fetch(API_URL, { cache: 'no-store' });
       if (!response.ok) throw new Error('A fonte de cartas respondeu com erro.');
       const json = await response.json();
-      const rawList = Array.isArray(json) ? json : (Array.isArray(json.cards) ? json.cards : (json.cards && typeof json.cards === 'object' ? Object.values(json.cards) : (Array.isArray(json.data?.cards) ? json.data.cards : (Array.isArray(json.data) ? json.data : (json.data && typeof json.data === 'object' ? Object.values(json.data) : (Array.isArray(json.results) ? json.results : [])))));
+      let rawList = [];
+      if (Array.isArray(json)) rawList = json;
+      else if (Array.isArray(json.cards)) rawList = json.cards;
+      else if (json.cards && typeof json.cards === 'object') rawList = Object.values(json.cards);
+      else if (Array.isArray(json.data?.cards)) rawList = json.data.cards;
+      else if (Array.isArray(json.data)) rawList = json.data;
+      else if (json.data && typeof json.data === 'object') rawList = Object.values(json.data);
+      else if (Array.isArray(json.results)) rawList = json.results;
       const list = rawList.filter(c => c && typeof c === 'object');
       if (!list.length) throw new Error('A fonte não retornou cartas em um formato reconhecido.');
       const normalized = list.map(normalizeCard).filter(c => c.fullName && c.fullName !== 'Carta sem nome');
