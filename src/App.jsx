@@ -24,11 +24,13 @@ function normalizeCard(c, i) {
     cost: c.cost ?? c.inkCost ?? c.ink_cost ?? '—',
     type: Array.isArray(c.type) ? c.type.join(', ') : (c.type || c.cardType || 'Carta'),
     rarity: c.rarity || c.Rarity || '—',
-    image: c.images?.full || c.images?.thumbnail || c.image || c.imageUrl || c.image_url || images.full || images.thumbnail || c.image_uri || c.imageUri || '',
+    image: (typeof images === 'string' ? images : (images.thumbnail || images.full || images.fullFoil || images.image || '')) || c.imageUrl || c.image_url || c.image_uri || c.imageUri || c.image || c.imageURL || c.image_url_full || '',
+    imageFull: (typeof images === 'object' ? (images.full || images.fullFoil || images.thumbnail || '') : '') || c.imageUrl || c.image_url || c.image_uri || c.imageUri || c.image || '',
     collectorNumber: Number(c.number ?? c.collectorNumber ?? c.collector_number ?? i + 1),
     inkable: c.inkwell ?? c.inkable ?? c.isInkable ?? c.is_inkable ?? null,
-    text: c.text || c.effect || c.ability || c.rulesText || c.rules_text || '',
-    strength: c.strength ?? c.willpower ?? null,
+    text: c.fullText || c.text || c.effect || c.ability || c.rulesText || c.rules_text || '',
+    strength: c.strength ?? null,
+    willpower: c.willpower ?? null,
     lore: c.lore ?? c.loreValue ?? null,
     raw: c
   };
