@@ -77,7 +77,8 @@ export default function App() {
   const sets = useMemo(() => ['Todos', ...new Set(cards.map(c => c.setName).filter(Boolean))].sort((a,b) => a === 'Todos' ? -1 : b === 'Todos' ? 1 : a.localeCompare(b)), [cards]);
   const inks = ['Todas', 'Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
   const rarities = useMemo(() => ['Todas', ...new Set(cards.map(c => c.rarity).filter(Boolean))].sort((a,b) => a === 'Todas' ? -1 : a.localeCompare(b)), [cards]);
-  const filtered = useMemo(() => {\n    const result = cards.filter(c => {
+  const filtered = useMemo(() => {
+    const result = cards.filter(c => {
     const q = query.toLowerCase().trim();
     const matchesQuery = !q || [c.name,c.fullName,c.setName,c.ink,c.rarity,c.type].some(v => String(v || '').toLowerCase().includes(q));
     return matchesQuery && (setFilter === 'Todos' || c.setName === setFilter) &&
