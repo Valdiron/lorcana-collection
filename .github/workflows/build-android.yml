@@ -24,6 +24,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Download card catalog for offline Android use
+        run: |
+          mkdir -p public
+          curl --fail --location --retry 3 --retry-delay 2 \
+            https://lorcanajson.org/files/current/en/allCards.json \
+            --output public/allCards.json
+          test -s public/allCards.json
       - name: Install dependencies
         run: npm install
       - name: Build web app
