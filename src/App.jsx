@@ -102,7 +102,7 @@ export default function App() {
     </header>
     <main>
       <section className="hero">
-        <div className="eyebrow"><span className="eyebrow-line"></span COLECIONE A MAGIA</div>
+        <div className="eyebrow"><span className="eyebrow-line"></span> COLECIONE A MAGIA</div>
         <h1>Seu mundo.<br/><em>Suas cartas.</em></h1>
         <p>Organize sua coleção de Lorcana, acompanhe suas conquistas e descubra as próximas cartas da sua jornada.</p>
         <div className="hero-actions">
