@@ -26,6 +26,10 @@ function normalizeCard(c, i) {
     rarity: c.rarity || c.Rarity || '—',
     image: c.images?.full || c.images?.thumbnail || c.image || c.imageUrl || c.image_url || images.full || images.thumbnail || c.image_uri || c.imageUri || '',
     collectorNumber: Number(c.number ?? c.collectorNumber ?? c.collector_number ?? i + 1),
+    inkable: c.inkwell ?? c.inkable ?? c.isInkable ?? c.is_inkable ?? null,
+    text: c.text || c.effect || c.ability || c.rulesText || c.rules_text || '',
+    strength: c.strength ?? c.willpower ?? null,
+    lore: c.lore ?? c.loreValue ?? null,
     raw: c
   };
 }
@@ -42,6 +46,10 @@ export default function App() {
   const [setFilter, setSetFilter] = useState('Todos');
   const [inkFilter, setInkFilter] = useState('Todas');
   const [rarityFilter, setRarityFilter] = useState('Todas');
+  const [inkability, setInkability] = useState('Todas');
+  const [costFilter, setCostFilter] = useState('Todos');
+  const [sortBy, setSortBy] = useState('set');
+  const [selectedCard, setSelectedCard] = useState(null);
   const [view, setView] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
@@ -69,15 +77,15 @@ export default function App() {
   const sets = useMemo(() => ['Todos', ...new Set(cards.map(c => c.setName).filter(Boolean))].sort((a,b) => a === 'Todos' ? -1 : b === 'Todos' ? 1 : a.localeCompare(b)), [cards]);
   const inks = ['Todas', 'Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
   const rarities = useMemo(() => ['Todas', ...new Set(cards.map(c => c.rarity).filter(Boolean))].sort((a,b) => a === 'Todas' ? -1 : a.localeCompare(b)), [cards]);
-  const filtered = useMemo(() => cards.filter(c => {
+  const filtered = useMemo(() => {\n    const result = cards.filter(c => {
     const q = query.toLowerCase().trim();
     const matchesQuery = !q || [c.name,c.fullName,c.setName,c.ink,c.rarity,c.type].some(v => String(v || '').toLowerCase().includes(q));
     return matchesQuery && (setFilter === 'Todos' || c.setName === setFilter) &&
       (inkFilter === 'Todas' || String(c.ink).toLowerCase().includes(inkFilter.toLowerCase())) &&
       (rarityFilter === 'Todas' || c.rarity === rarityFilter) &&
       (view === 'all' || (view === 'owned' && (owned[c.id] || 0) > 0) || (view === 'wishlist' && wishlist[c.id]));
-  }), [cards, query, setFilter, inkFilter, rarityFilter, view, owned, wishlist]);
-  useEffect(() => setPage(1), [query, setFilter, inkFilter, rarityFilter, view]);
+    });\n    if (sortBy === 'cost') result.sort((a,b) => Number(a.cost || 0) - Number(b.cost || 0));\n    else if (sortBy === 'rarity') result.sort((a,b) => String(a.rarity).localeCompare(String(b.rarity)));\n    else if (sortBy === 'name') result.sort((a,b) => a.fullName.localeCompare(b.fullName));\n    else result.sort((a,b) => a.setName.localeCompare(b.setName) || a.collectorNumber - b.collectorNumber);\n    return result;\n  }, [cards, query, setFilter, inkFilter, rarityFilter, inkability, costFilter, sortBy, view, owned, wishlist]);
+  useEffect(() => setPage(1), [query, setFilter, inkFilter, rarityFilter, inkability, costFilter, sortBy, view]);
   const ownedKinds = Object.values(owned).filter(n => n > 0).length;
   const ownedCopies = Object.values(owned).reduce((a,n) => a + Number(n || 0), 0);
   const wishlistCount = Object.values(wishlist).filter(Boolean).length;
@@ -134,22 +142,22 @@ export default function App() {
         </div>
         {error && <div className="notice"><CircleAlert size={18}/><span>{error}</span><button onClick={loadCards}><RefreshCw size={15}/> Tentar novamente</button></div>}
         {loading ? <div className="loading-state"><div className="spinner"></div><strong>Invocando o catálogo...</strong><span>Carregando as cartas da sua coleção</span></div> :
-          visible.length ? <div className="cards-grid">{visible.map((card,i)=><article className="card-item" key={card.id}>
+          visible.length ? <div className="cards-grid">{visible.map((card,i)=><article className="card-item" key={card.id} onClick={()=>setSelectedCard(card)} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')setSelectedCard(card);}}>
             <div className={'card-art ink-'+String(card.ink).toLowerCase()}>
               {card.image ? <img src={card.image} alt={card.fullName} loading={i<12?'eager':'lazy'} onError={e=>{e.currentTarget.style.display='none'; const p=e.currentTarget.parentElement; if(p && !p.querySelector('.card-placeholder')) { const d=document.createElement('div'); d.className='card-placeholder'; d.innerHTML='<span>'+String(card.name).replace(/[&<>"']/g,'')+'</span><small>Imagem indisponível</small>'; p.prepend(d); }}}/> : <div className="card-placeholder"><Sparkles size={32}/><span>{card.name}</span><small>{card.ink}</small></div>}
               <span className="rarity-tag">{card.rarity}</span>
-              <button className={wishlist[card.id]?'wish-btn wished':'wish-btn'} onClick={()=>toggleWish(card)} aria-label={wishlist[card.id]?'Remover dos desejos':'Adicionar aos desejos'}><Heart size={17} fill={wishlist[card.id]?'currentColor':'none'}/></button>
+              <button className={wishlist[card.id]?'wish-btn wished':'wish-btn'} onClick={e=>{e.stopPropagation();toggleWish(card);}} aria-label={wishlist[card.id]?'Remover dos desejos':'Adicionar aos desejos'}><Heart size={17} fill={wishlist[card.id]?'currentColor':'none'}/></button>
               {owned[card.id]>0 && <span className="owned-badge">×{owned[card.id]}</span>}
             </div>
             <div className="card-info"><div className="card-set">{card.setName}</div><h3>{card.fullName}</h3><div className="card-meta"><span className="ink-dot"></span>{card.ink}<span className="meta-divider">•</span>Custo {card.cost}</div>
-              <div className="quantity-row"><span>{owned[card.id] ? 'Na sua coleção' : 'Ainda não coletada'}</span><div className="quantity-controls"><button disabled={!owned[card.id]} onClick={()=>changeOwned(card,-1)} aria-label="Diminuir quantidade"><Minus size={14}/></button><strong>{owned[card.id]||0}</strong><button onClick={()=>changeOwned(card,1)} aria-label="Aumentar quantidade"><Plus size={14}/></button></div></div>
+              <div className="quantity-row"><span>{owned[card.id] ? 'Na sua coleção' : 'Ainda não coletada'}</span><div className="quantity-controls"><button disabled={!owned[card.id]} onClick={e=>{e.stopPropagation();changeOwned(card,-1);}} aria-label="Diminuir quantidade"><Minus size={14}/></button><strong>{owned[card.id]||0}</strong><button onClick={e=>{e.stopPropagation();changeOwned(card,1);}} aria-label="Aumentar quantidade"><Plus size={14}/></button></div></div>
             </div>
           </article>)}</div> : <div className="empty-state"><div className="empty-icon"><Search size={25}/></div><h3>Nenhuma carta encontrada</h3><p>Tente mudar a busca ou os filtros para encontrar suas cartas.</p><button className="secondary-btn" onClick={()=>{setQuery('');setSetFilter('Todos');setInkFilter('Todas');setRarityFilter('Todas');setView('all');}}>Limpar busca</button></div>}
         {!loading && visible.length < filtered.length && <button className="load-more" onClick={()=>setPage(p=>p+1)}>Carregar mais cartas <span>({visible.length} de {filtered.length})</span></button>}
         {!loading && <div className="catalog-footer"><span>{source==='live'?'Catálogo atualizado online':'Modo demonstração'}</span><button onClick={loadCards}><RefreshCw size={14}/> Atualizar catálogo</button></div>}
       </section>
 
-      <section className="backup-banner"><div className="backup-icon"><Download size={22}/></div><div><h3>Sua coleção é sua história.</h3><p>Faça backup dos seus dados ou restaure sua coleção em outro dispositivo.</p></div><div className="backup-actions"><button onClick={exportData}><Download size={16}/> Exportar</button><label className="import-btn"><Upload size={16}/> Importar<input type="file" accept="application/json,.json" onChange={importData} hidden/></label></div></section>
+      {selectedCard && <div className="modal-backdrop" onClick={()=>setSelectedCard(null)}><section className="card-detail-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelectedCard(null)} aria-label="Fechar"><X size={20}/></button><div className={'detail-art ink-'+String(selectedCard.ink).toLowerCase()}>{selectedCard.image ? <img src={selectedCard.image} alt={selectedCard.fullName} onError={e=>{e.currentTarget.style.display='none';}}/> : <div className="card-placeholder"><Sparkles size={34}/><span>{selectedCard.fullName}</span></div>}</div><div className="detail-copy"><div className="eyebrow">{selectedCard.setName} · Nº {selectedCard.collectorNumber}</div><h2>{selectedCard.fullName}</h2><div className="detail-chips"><span>{selectedCard.ink}</span><span>{selectedCard.rarity}</span><span>Custo {selectedCard.cost}</span><span>{selectedCard.inkable === true ? 'Inkable' : selectedCard.inkable === false ? 'Não inkable' : 'Tinta não informada'}</span></div><h3>Texto e habilidades</h3><p>{selectedCard.text || 'O texto de regras desta carta não está disponível na fonte de dados atual.'}</p><div className="detail-stats">{selectedCard.strength != null && <span>Força / Resistência: {String(selectedCard.strength)}</span>}{selectedCard.lore != null && <span>Lore: {String(selectedCard.lore)}</span>}</div><button className="primary-btn" onClick={()=>{changeOwned(selectedCard,1);}}>＋ Adicionar à coleção</button><a className="official-card-link" href={'https://cards.disneylorcana.com/en-US/'} target="_blank" rel="noreferrer">Consultar galeria oficial <ExternalLink size={14}/></a></div></section></div>}\n\n      <section className="backup-banner"><div className="backup-icon"><Download size={22}/></div><div><h3>Sua coleção é sua história.</h3><p>Faça backup dos seus dados ou restaure sua coleção em outro dispositivo.</p></div><div className="backup-actions"><button onClick={exportData}><Download size={16}/> Exportar</button><label className="import-btn"><Upload size={16}/> Importar<input type="file" accept="application/json,.json" onChange={importData} hidden/></label></div></section>
       <footer><div className="footer-brand"><Sparkles size={16}/> LORCANA COLLECTION</div><p>Feito para quem coleciona magia.</p><small>Projeto independente, sem afiliação com Disney ou Ravensburger. Todas as marcas e imagens pertencem aos seus respectivos proprietários.</small></footer>
     </main>
   </div>;
