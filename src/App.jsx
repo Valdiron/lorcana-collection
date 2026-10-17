@@ -60,9 +60,18 @@ export default function App() {
   async function loadCards() {
     setLoading(true); setError('');
     try {
-      const response = await fetch(API_URL, { cache: 'no-store' });
-      if (!response.ok) throw new Error('A fonte de cartas respondeu com erro.');
-      const json = await response.json();
+      // O catálogo é empacotado no APK para evitar falhas de rede/CORS no Android.
+      // Se o arquivo local não existir, tenta a fonte online como alternativa.
+      let json;
+      try {
+        const localResponse = await fetch('./allCards.json', { cache: 'no-store' });
+        if (!localResponse.ok) throw new Error('Catálogo local indisponível.');
+        json = await localResponse.json();
+      } catch {
+        const response = await fetch(API_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error('A fonte de cartas respondeu com erro.');
+        json = await response.json();
+      }
       let rawList = [];
       if (Array.isArray(json)) rawList = json;
       else if (Array.isArray(json.cards)) rawList = json.cards;
