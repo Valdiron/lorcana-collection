@@ -63,9 +63,12 @@ export default function App() {
       const response = await fetch(API_URL, { cache: 'no-store' });
       if (!response.ok) throw new Error('A fonte de cartas respondeu com erro.');
       const json = await response.json();
-      const list = Array.isArray(json) ? json : (json.cards || json.data?.cards || json.data || json.results || []);
-      if (!list.length) throw new Error('A fonte não retornou cartas.');
-      setCards(list.map(normalizeCard).sort((a,b) => a.setName.localeCompare(b.setName) || a.collectorNumber - b.collectorNumber));
+      const rawList = Array.isArray(json) ? json : (Array.isArray(json.cards) ? json.cards : (json.cards && typeof json.cards === 'object' ? Object.values(json.cards) : (Array.isArray(json.data?.cards) ? json.data.cards : (Array.isArray(json.data) ? json.data : (json.data && typeof json.data === 'object' ? Object.values(json.data) : (Array.isArray(json.results) ? json.results : [])))));
+      const list = rawList.filter(c => c && typeof c === 'object');
+      if (!list.length) throw new Error('A fonte não retornou cartas em um formato reconhecido.');
+      const normalized = list.map(normalizeCard).filter(c => c.fullName && c.fullName !== 'Carta sem nome');
+      if (!normalized.length) throw new Error('O catálogo foi recebido, mas não foi possível interpretar as cartas.');
+      setCards(normalized.sort((a,b) => a.setName.localeCompare(b.setName) || a.collectorNumber - b.collectorNumber));
       setSource('live');
     } catch (e) {
       setCards(sampleCards.map(normalizeCard));
